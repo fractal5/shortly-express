@@ -2,6 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var session = require('express-session');
 
 
 var db = require('./app/config');
@@ -12,6 +13,13 @@ var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 
 var app = express();
+app.use(session({
+  secret: 'keyboard cat'/*,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: true }
+*/}));
+
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
@@ -22,25 +30,42 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+var restrict = function(req, res, next) {
+  console.log('restrict: req.session: ', req.session);
+  if (req.session.user) {
+    console.log("restrict: ok for user, ", req.session.user);
+    next();
+  } else {
+    console.log("restrict: denied for user, ", req.session.user);
+    req.session.error = 'Access denied!';
+    res.redirect('/login');
+  }
+}
 
-app.get('/', 
+
+app.get('/', restrict,  
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
+// app.get('/create', 
+app.get('/signup', 
 function(req, res) {
-  res.render('index');
+  res.render('signup');
 });
 
-app.get('/links', 
+app.get('/links', restrict,
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links', 
+app.get('/login', function(req, res){
+  res.render('login');
+});
+
+app.post('/links', restrict,
 function(req, res) {
   var uri = req.body.url;
 
@@ -78,6 +103,17 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+var initSession = function(req, res, username) {
+  req.session.regenerate(function(){
+    console.log("initSession: session regenerate for ", username);
+    req.session.user = username;
+    console.log('initSess, after setting req.sess.user: ',req.session)
+    res.redirect('/');
+  });
+  console.log("initSession: req.session: ", req.session);
+};
+
+
 app.post('/signup', 
   function(req, res) {
     var username = req.body.username;
@@ -85,7 +121,7 @@ app.post('/signup',
 
 
     // check to see if username already exists; if yes, error
-    new User({'username': username}).fetch().then(function(found) {
+    new User({'username': username}, {'clearpass': password}).fetch().then(function(found) {
       console.log('Signup POST: ', username, password);
       if (found) {
         console.log('Signup: username already exists.');
@@ -94,8 +130,8 @@ app.post('/signup',
         console.log('Signup: res.headers is: ', res.headers);
         res.status(302).send();
       } else {
-        var user = new User({'username': username}, {'password':password});
-        var user = new User({'username': username, 'passwordhash': password});
+        var user = new User({'username': username}, {'clearpass':password});
+        // var user = new User({'username': username, 'passwordhash': password});
         console.log('Signup: new username');
         // console.log('Signup: res is: ', res);
         console.log("user before save: ",user.attributes);
@@ -103,9 +139,11 @@ app.post('/signup',
           console.log('newUser: ',newUser.attributes);
           Users.add(newUser);
           // res.set('location','/');
-          res.location('/');
-          console.log('Signup: res.headers is: ', res.headers);
-          res.status(302).send();
+
+          initSession(req, res, username);
+          // res.location('/');
+          // console.log('Signup: res.headers is: ', res.headers);
+          // res.status(302).send();
         })
       }
 
@@ -119,19 +157,22 @@ app.post('/login',
   function(req, res){
     var username = req.body.username;
     var password = req.body.password;
-    new User({'username': username}, {'password': password}).fetch().then(function(model){
+    new User({'username': username}, {'clearpass': password}).fetch().then(function(model){
       if(!model){
-        res.send(404, 'User not found');
+        res.location('/login');
+        res.status(302).send();
       } else {
         console.log("POST/login Model found, attributes: "+JSON.stringify(model)+"\n\n");
-        model.checkPassword(password).then(function(correct){
+        return model.checkPassword(password).then(function(correct){
           console.log('checkPassword then statement correct: '+correct);
           if(!correct){
-            res.send(404, 'Incorrect username and password');
+            res.location('/login');
+            res.status(302).send();
           } else {
             console.log("Password correct! ");
-            res.location('/');
-            res.status(302).send();
+            initSession(req, res, username);
+            // res.location('/');
+            // res.status(302).send();
           }
         })
         .catch(function(err){console.log("check password error")});

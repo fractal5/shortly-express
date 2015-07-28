@@ -19,7 +19,7 @@ var xbeforeEach = function(){};
 
 describe('', function() {
 
-  xbeforeEach(function() {
+  beforeEach(function() {
     // log out currently signed in user
     request('http://127.0.0.1:4568/logout', function(error, res, body) {});
 
@@ -40,10 +40,10 @@ describe('', function() {
       .del()
       .catch(function(error) {
         // uncomment when writing authentication tests
-        // throw {
-        //   type: 'DatabaseError',
-        //   message: 'Failed to create test setup data'
-        // };
+        throw {
+          type: 'DatabaseError',
+          message: 'Failed to create test setup data'
+        };
       });
 
     // delete user Phillip from db so it can be created later for the test
@@ -52,23 +52,21 @@ describe('', function() {
       .del()
       .catch(function(error) {
         // uncomment when writing authentication tests
-        // throw {
-        //   type: 'DatabaseError',
-        //   message: 'Failed to create test setup data'
-        // };
+        throw {
+          type: 'DatabaseError',
+          message: 'Failed to create test setup data'
+        };
       });
   });
 
-  xdescribe('Link creation:', function(){
+  describe('Link creation:', function(){
 
     var requestWithSession = request.defaults({jar: true});
 
     beforeEach(function(){
       // create a user that we can then log-in with
-      new User({
-          'username': 'Phillip',
-          'password': 'Phillip'
-      }).save().then(function(){
+      new User({'username': 'Phillip'}, {'clearpass': 'Phillip'})
+        .save().then(function(){
         var options = {
           'method': 'POST',
           'followAllRedirects': true,
@@ -213,7 +211,7 @@ describe('', function() {
 
   }); // 'Link creation'
 
-  xdescribe('Privileged Access:', function(){
+  describe('Privileged Access:', function(){
 
     it('Redirects to login page if a user tries to access the main page and is not signed in', function(done) {
       request('http://127.0.0.1:4568/', function(error, res, body) {
@@ -238,7 +236,7 @@ describe('', function() {
 
   }); // 'Priviledged Access'
 
-  xdescribe('Account Creation:', function(){
+  describe('Account Creation:', function(){
 
     it('Signup creates a user record', function(done) {
       var options = {
@@ -286,12 +284,12 @@ describe('', function() {
 
   }); // 'Account Creation'
 
-  describe('Account Login:', function(){
+  xdescribe('Account Login:', function(){
 
     var requestWithSession = request.defaults({jar: true});
 
     beforeEach(function(done){
-      var user = new User({'username': 'Phillip','passwordhash':'Phillip'});
+      var user = new User({'username': 'Phillip'}, {'clearpass' : 'Phillip'} );
       console.log('User model: ', user);
       user.save().then(function(newUser){
         console.log('beforeEach newUser attr: ',newUser.attributes);
