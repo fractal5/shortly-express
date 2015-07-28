@@ -78,8 +78,74 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+app.post('/signup', 
+  function(req, res) {
+    var username = req.body.username;
+    var password = req.body.password;
 
 
+    // check to see if username already exists; if yes, error
+    new User({'username': username}).fetch().then(function(found) {
+      console.log('Signup POST: ', username, password);
+      if (found) {
+        console.log('Signup: username already exists.');
+        // res.set('location','/');
+        res.location('/');
+        console.log('Signup: res.headers is: ', res.headers);
+        res.status(302).send();
+      } else {
+        var user = new User({'username': username}, {'password':password});
+        console.log('Signup: new username');
+        // console.log('Signup: res is: ', res);
+        console.log("user before save: ",user.attributes);
+        user.save().then(function(newUser) {
+          console.log('newUser: ',newUser.attributes);
+          Users.add(newUser);
+          // res.set('location','/');
+          res.location('/');
+          console.log('Signup: res.headers is: ', res.headers);
+          res.status(302).send();
+        })
+      }
+
+    });
+
+    // new User({ username: username, password: password})
+
+  });
+
+app.post('/login',
+  function(req, res){
+    var username = req.body.username;
+    var password = req.body.password;
+    new User({'username': username}).fetch().then(function(model){
+      if(!model){
+        res.send(404, 'User not found');
+      } else {
+        console.log("POST/login Model found, attributes: "+JSON.stringify(model)+"\n\n");
+        model.checkPassword(password).then(function(correct){
+          console.log('checkPassword then statement correct: '+correct);
+          if(!correct){
+            res.send(404, 'Incorrect username and password');
+          } else {
+            console.log("Password correct! ");
+            res.location('/');
+            res.status(302).send();
+          }
+        })
+        .catch(function(err){console.log("check password error")});
+      }
+    }); 
+  }
+);
+
+    //fetch the user if it exists
+    // fetch the salt and hash 
+
+    // hash the input password with the salt
+    // compare the hashed input with the table
+       // if it matches, redirect to '/'
+       // if not, throw some error page
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
 // assume the route is a short code and try and handle it here.
