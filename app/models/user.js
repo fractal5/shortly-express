@@ -8,15 +8,19 @@ var User = db.Model.extend({
     return this.hasMany(Link);
   },
   initialize: function(){
+    console.log('**** model attrs on initialize: ', this.attributes);
     this.on('creating', function(model, attrs, options) {
       // XXX - temporarily storing cleartext password to use later
-      model.set('passwordhash', attrs.password);
+      // model.set('passwordhash', attrs.password);
+      console.log('Model creating attrs.password: '+ attrs.password + ' hash ' + model.get('passwordhash'));
     });
 
     this.on('saving', function(model, attrs, options){
       // bcrypt - get salt
       var password = model.get('passwordhash');
-      console.log('User saving: attrs.password: ', password);
+      console.log('*** User saving: attrs.password: ', password);
+      console.log('model: ', model);
+      console.log('attrs: ', attrs);
 
       return bcrypt.hashAsync(password, null, null)
         .then(function(hash) {

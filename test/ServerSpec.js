@@ -291,7 +291,7 @@ describe('', function() {
     var requestWithSession = request.defaults({jar: true});
 
     beforeEach(function(done){
-      var user = new User({'username': 'Phillip'},{'password':'Phillip'});
+      var user = new User({'username': 'Phillip','passwordhash':'Phillip'});
       console.log('User model: ', user);
       user.save().then(function(newUser){
         console.log('beforeEach newUser attr: ',newUser.attributes);

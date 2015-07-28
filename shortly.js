@@ -95,6 +95,7 @@ app.post('/signup',
         res.status(302).send();
       } else {
         var user = new User({'username': username}, {'password':password});
+        var user = new User({'username': username, 'passwordhash': password});
         console.log('Signup: new username');
         // console.log('Signup: res is: ', res);
         console.log("user before save: ",user.attributes);
@@ -118,7 +119,7 @@ app.post('/login',
   function(req, res){
     var username = req.body.username;
     var password = req.body.password;
-    new User({'username': username}).fetch().then(function(model){
+    new User({'username': username}, {'password': password}).fetch().then(function(model){
       if(!model){
         res.send(404, 'User not found');
       } else {
